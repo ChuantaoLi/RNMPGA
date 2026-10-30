@@ -1,2 +1,21 @@
-# RNMPGA
-A Ring-Neighborhood Multi-Population Genetic Algorithm for High-Dimensional Feature Selection
+# README
+
+近年来，基于多种群的进化算法已在特征选择任务中展现出良好性能。然而，现有的研究在面对高维特征选择问题时，仍然存在易陷入局部最优与早熟收敛等问题。为解决上述问题，本研究提出了一种用于高维特征选择的环邻域多种群遗传算法，称为RNMPGA。具体而言，本研究提出了环邻域种群结构，将特征选择的多目标优化问题分解为搜索偏好各异的多个子问题，每个子问题由一个子种群负责搜索。在子种群内部，各子种群通过均匀交叉与引导变异进行局部进化；在子种群之间，各邻域子种群通过精英交互机制进行优质信息共享。在23个高维数据集上的实验结果表明，与多种基于多种群和多目标的先进模型相比，RNMPGA能够获得更高质量的特征子集。
+
+
+运行指令如下：
+
+- 安装依赖：pip install -r requirements.txt
+- 对比实验：python main.py --config config.yaml
+- 消融分析：python exp_ablation.py --repeats 10 --datasets auto
+- 参数敏感分析：python exp_sensitivity.py --repeats 10 --datasets auto
+
+评估指标如下：
+
+|  指标   |       含义       |   方向   |
+| :-----: | :--------------: | :------: |
+|   MCE   |   最小分类误差   | 越小越好 |
+|   FN    | 最优子集特征占比 | 越小越好 |
+|   HV    |      超体积      | 越大越好 |
+|   IGD   |   反向世代距离   | 越小越好 |
+| Runtime |   单次运行耗时   | 越小越好 |
