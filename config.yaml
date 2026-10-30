@@ -1,0 +1,52 @@
+# 每个组合的独立运行次数
+repeats: 10
+
+# 计算资源控制
+compute:
+  n_jobs: 1
+
+# 分类器配置
+classifier:
+  type: dt
+  params:
+    # --- dt (决策树) ---
+    random_state: 42
+    max_depth: 30
+    # --- rf (随机森林) ---
+    n_estimators: 20 # 树的数量
+    n_jobs: 1 # 并行核数
+    # --- knn (K近邻) ---
+    n_neighbors: 5
+
+# 要运行的数据集: 填 Dataset 文件夹下的文件名; 填 "auto" 运行全部
+datasets:
+  - auto
+
+# 要运行的模型: name 对应 Model 文件夹中注册的算法, params 传给算法
+models:
+  - name: rnmpga
+    params:
+      N: 10 # 每子种群规模
+      M: 20 # 子种群数量
+      maxGen: 50 # 最大迭代代数
+      pc: 0.9 # 均匀交叉概率
+      t_mig: 5 # 精英交互间隔
+      s_elite: 3 # 每次交互的精英数
+      ptrans: 0.5 # 邻域交配概率
+      mrmr_K: 200 # mRMR 短名单规模
+      seed: 42 # 随机种子
+      workers: 32 # 内部评估并行线程数
+
+# 训练/验证集划分
+split:
+  test_size: 0.3 # 测试集比例
+  random_state: 42 # 随机种子
+  stratify: true # 是否按标签分层划分
+
+# 结果输出
+output:
+  dir: Results # 分类器实验输出目录
+  log_file: results_log_dt.xlsx # 追加式结果日志, 每次运行续写, 不覆盖历史
+
+# 终端进度条可视化
+progress_bar: true
