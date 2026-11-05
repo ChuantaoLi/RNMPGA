@@ -1,9 +1,8 @@
-"""
-模型运行入口
+"""Run configured feature selection experiments.
 
-用法:
+Usage:
     python main.py --config config.yaml
-    python main.py --config config.yaml --resume   # 检查结果日志, 跳过已有结果
+    python main.py --config config.yaml --resume   # Skip logged configurations
 """
 
 import argparse
@@ -58,9 +57,7 @@ RESULT_COLUMNS = [
 
 
 def mean_std(values, mean_digits=6, std_digits=6) -> tuple[float, float]:
-    """
-    repeats 次独立运行的均值与样本标准差
-    """
+    """Return the mean and sample standard deviation across independent runs."""
     vals = np.asarray(values, dtype=float)
     m = float(vals.mean())
     s = float(vals.std(ddof=1)) if vals.size > 1 else 0.0
@@ -68,17 +65,13 @@ def mean_std(values, mean_digits=6, std_digits=6) -> tuple[float, float]:
 
 
 def load_config(path: Path) -> dict:
-    """
-    读取 yaml 配置
-    """
+    """Load the YAML configuration."""
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def params_str(params: dict) -> str:
-    """
-    模型参数序列化字符串
-    """
+    """Serialize model parameters."""
     return json.dumps(params, ensure_ascii=False)
 
 
@@ -127,9 +120,7 @@ def save_repeat_checkpoint(
 
 
 def _safe_name(s: str) -> str:
-    """
-    文件名安全化: 非字母数字/_./- 的字符替换为 _
-    """
+    """Replace filename-unsafe characters with underscores."""
     return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in s)
 
 
@@ -141,9 +132,7 @@ def write_curves(
     repeats: int,
     curves: list,
 ) -> None:
-    """
-    导出每 repeat 的逐代适应度曲线 (JSON)。
-    """
+    """Save per-run fitness curves as JSON."""
     if curves_dir is None:
         return
     curves_dir.mkdir(parents=True, exist_ok=True)
@@ -174,9 +163,7 @@ def write_objective_space(
     run_obj: list,
     obj: np.ndarray,
 ) -> None:
-    """
-    导出目标空间数据
-    """
+    """Save objective-space data."""
     if obj_dir is None:
         return
     obj_dir.mkdir(parents=True, exist_ok=True)
@@ -188,7 +175,10 @@ def write_objective_space(
         "params": params_str(params),
         "repeats": repeats,
         "D": int(D),
-        "objectives": ["|s|/D", "1-Acc"],  # 论文式 (1): 特征占比, 分类错误率
+        "objectives": [
+            "|s|/D",
+            "1-Acc",
+        ],  # Eq. (1): feature proportion and classification error
         "obj": [[float(a), float(b)] for a, b in obj],
         "fronts": [[[float(a), float(b)] for a, b in f] for f in run_obj],
         "note": "目标空间坐标 (|s|/D, 1-Acc); obj 为合并全部 repeats 的非支配解"
@@ -200,9 +190,7 @@ def write_objective_space(
 
 
 def resolve_datasets(cfg: dict) -> list[str]:
-    """
-    解析配置中的数据集列表; 填 auto 或留空时运行 Dataset 下全部 csv
-    """
+    """Resolve configured datasets; use all CSV files for empty or "auto" input."""
     names = cfg.get("datasets", [])
     if isinstance(names, str):
         names = [names]
@@ -212,9 +200,7 @@ def resolve_datasets(cfg: dict) -> list[str]:
 
 
 def load_dataset(name: str) -> tuple[np.ndarray, np.ndarray]:
-    """
-    加载数据集: 特征取除最后一列, 标签取最后一列 (兼容不同列名)
-    """
+    """Load features from all but the last column and labels from the last column."""
     path = ROOT / "Dataset" / name
     if not path.exists():
         raise FileNotFoundError(f"数据集不存在: {path}")
@@ -239,9 +225,7 @@ def run_one(
     repeat_checkpoint: dict[int, dict] | None = None,
     checkpoint_dir: Path | None = None,
 ) -> dict:
-    """
-    对单个 (数据集, 模型) 组合: 划分数据 -> 独立运行 repeats 次 -> 论文指标评估
-    """
+    """Run one dataset-model pair and summarize metrics across independent runs."""
     feat, label = load_dataset(ds_name)
     D = feat.shape[1]
 
@@ -262,7 +246,7 @@ def run_one(
 
     def evaluate(sel_idx):
         if sel_idx.size == 0:
-            return 0.0, 1.0  # 未选中任何特征: 准确率 0, MCE 视为 1
+            return 0.0, 1.0  # No selected features: accuracy 0 and MCE 1.
         mdl = build_classifier(cls_opts)
         mdl.fit(xtr[:, sel_idx], np.asarray(ytr).ravel())
         y_pred = mdl.predict(xte[:, sel_idx])
@@ -399,7 +383,7 @@ def run_one(
 
 
 def append_row(path: Path, row: dict) -> None:
-    """向 xlsx 追加一行; 文件不存在时创建并写入表头"""
+    """Append a result row, creating the workbook and header if needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         wb = load_workbook(path)
@@ -414,9 +398,7 @@ def append_row(path: Path, row: dict) -> None:
 
 
 def load_existing_keys(path: Path) -> set[tuple[str, str, str]]:
-    """
-    --resume 用: 读取日志中已有的 (Dataset, Model, Params) 组合集合
-    """
+    """Load logged dataset-model-parameter keys for ``--resume``."""
     if not path.exists():
         return set()
     try:
@@ -429,15 +411,13 @@ def load_existing_keys(path: Path) -> set[tuple[str, str, str]]:
     keys = set()
     for ds, m, p in zip(df["Dataset"], df["Model"], df["Params"]):
         if pd.isna(ds) or pd.isna(m) or pd.isna(p):
-            continue  # 跳过空行
+            continue  # Skip blank rows.
         keys.add((str(ds), str(m), str(p)))
     return keys
 
 
 def apply_thread_limits(n_jobs):
-    """
-    把底层数值库 (MKL/OpenBLAS 等) 的线程数限制到 n_jobs
-    """
+    """Limit threads used by numerical libraries."""
     if n_jobs is None:
         return contextlib.nullcontext()
     for var in (
@@ -456,9 +436,7 @@ def apply_thread_limits(n_jobs):
 
 
 def report_thread_limits() -> None:
-    """
-    打印限制后底层库 (MKL/OpenBLAS) 的实际线程数, 便于确认生效
-    """
+    """Report active BLAS thread limits."""
     try:
         from threadpoolctl import threadpool_info
     except ImportError:
@@ -495,9 +473,7 @@ def main() -> None:
 
 
 def run_experiments(cfg: dict, args: argparse.Namespace) -> None:
-    """
-    主实验循环: 对每个 (数据集, 模型) 组合运行特征选择并记录结果
-    """
+    """Run feature selection for each configured dataset-model pair and log results."""
     ds_names = resolve_datasets(cfg)
     out_cfg = cfg.get("output", {})
     out_dir = ROOT / out_cfg.get("dir", "Results")
@@ -507,7 +483,7 @@ def run_experiments(cfg: dict, args: argparse.Namespace) -> None:
     checkpoint_dir = out_dir / "repeat_checkpoints"
     show_bar = cfg.get("progress_bar", True)
     split_cfg = cfg.get("split", {})
-    repeats = int(cfg.get("repeats", 30))  # 论文: 30 次独立运行
+    repeats = int(cfg.get("repeats", 30))  # Manuscript setting: 30 independent runs.
 
     print(
         f"数据集 {len(ds_names)} 个, 每个组合独立运行 {repeats} 次, "
@@ -573,7 +549,7 @@ def run_experiments(cfg: dict, args: argparse.Namespace) -> None:
                 continue
 
             row = {"Timestamp": ts, **row}
-            append_row(log_path, row)  # 追加式日志 (续写, 不覆盖)
+            append_row(log_path, row)  # Append to the results log.
             total_runs += 1
 
             print(
