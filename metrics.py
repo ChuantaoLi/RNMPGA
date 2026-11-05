@@ -1,12 +1,10 @@
-"""
-评估指标实现
-"""
+"""Evaluation metrics."""
 
 import numpy as np
 
 
 # ===========================================================================
-# 一、MCE: 最小分类误差
+# MCE: Minimum classification error
 # ===========================================================================
 def mce_metric(y_true, y_pred):
     y_true = np.asarray(y_true).ravel()
@@ -38,7 +36,7 @@ def mce_metric(y_true, y_pred):
 
 
 # ===========================================================================
-# 二、FN: 特征数占比
+# FN: Feature number
 # ===========================================================================
 def feature_ratio(n_selected, n_total):
     if n_total <= 0:
@@ -47,7 +45,7 @@ def feature_ratio(n_selected, n_total):
 
 
 # ===========================================================================
-# 三、HV: 超体积
+# HV: Hypervolume
 # ===========================================================================
 def hypervolume_2d(obj, ref):
     obj = np.asarray(obj, dtype=float)
@@ -67,20 +65,20 @@ def hypervolume_2d(obj, ref):
 
 
 # ===========================================================================
-# 四、IGD: 反向世代距离
+# IGD: Inverted generational distance
 # ===========================================================================
 def igd(approx, true_pf):
     approx = np.asarray(approx, dtype=float)
     true_pf = np.asarray(true_pf, dtype=float)
     if approx.size == 0 or true_pf.size == 0:
         return float("nan")
-    # 每对 (f, g) 的欧氏距离, 再对每个 f 取到真实集合的最近距离并平均
+    # Average each approximate point's distance to its nearest reference point.
     dists = np.sqrt(((approx[:, None, :] - true_pf[None, :, :]) ** 2).sum(axis=2))
     return float(dists.min(axis=1).mean())
 
 
 # ===========================================================================
-# 五、辅助: 非支配筛选
+# Non-dominated sorting helper
 # ===========================================================================
 def non_dominated_indices(obj):
     obj = np.asarray(obj, dtype=float)
