@@ -1,6 +1,4 @@
-"""
-参数敏感分析实验
-"""
+"""Parameter sensitivity study."""
 
 import argparse
 import json
@@ -43,7 +41,7 @@ HV_REF = (1.0, 1.0)
 
 def value_str(param, value):
     if param == "pop":
-        return f"{value[0]}×{value[1]}"  # 用 × 而非 -, 避免 Excel 将 8-25 误识别为日期
+        return f"{value[0]}×{value[1]}"  # Avoid Excel parsing 8-25 as a date.
     return str(value)
 
 
@@ -234,7 +232,7 @@ def analyze(args):
     for p in sorted(outdir.glob("combo_*.json")):
         d = json.loads(p.read_text(encoding="utf-8"))
         if d["param"] not in PARAM_RANGES or d["value_str"] not in valid_vs[d["param"]]:
-            continue  # 旧格式结果 (如 pop_8-25 / s_elite_1.0), 跳过
+            continue  # Skip results in the legacy format.
         combos[(d["dataset"], d["param"], d["value_str"])] = d
     if not combos:
         raise SystemExit(f"{outdir} 下没有 combo_*.json")
