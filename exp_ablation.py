@@ -1,6 +1,4 @@
-"""
-消融分析实验
-"""
+"""Ablation study."""
 
 import argparse
 import json
@@ -45,7 +43,7 @@ HV_REF = (1.0, 1.0)
 
 
 # ---------------------------------------------------------------------------
-# 各级所需的算子实现
+# Operators for each ablation level
 # ---------------------------------------------------------------------------
 def make_uniform_init():
 
@@ -374,7 +372,7 @@ def analyze(args):
     for p in sorted(outdir.glob("combo_*.json")):
         d = json.loads(p.read_text(encoding="utf-8"))
         if d["level"] not in LEVELS:
-            continue  # 旧协议遗留文件 (如旧 L4/L5), 跳过
+            continue  # Skip files from legacy protocols.
         combos[(d["dataset"], d["level"])] = d
     if not combos:
         raise SystemExit(f"{outdir} 下没有 combo_*.json")
