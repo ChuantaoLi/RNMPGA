@@ -14,3 +14,5 @@ The run commands are as follows:
 
 
 ![rnmpga-workflow](https://lctmemos.oss-cn-beijing.aliyuncs.com/img/rnmpga-workflow.png)
+
+![image-20261106151419668](https://lctmemos.oss-cn-beijing.aliyuncs.com/img/image-20261106151419668.png)
